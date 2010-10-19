@@ -7,9 +7,12 @@ from yaml import load
 from os.path import expanduser
 from pprint import pprint as pp
 
-def get_sftp(profile='default'):
+def get_cfg(filename='~/.quaffy'):
     # FIXME insert error handling and raising around this
-    cfg = load(open(expanduser('~/.quaffy')))[profile]
+    return load(open(expanduser(filename)))
+
+def get_sftp(profile='default'):
+    cfg = get_cfg()[profile]
     transport = paramiko.Transport((cfg['host'],cfg['port']))
     transport.connect(username=cfg['user'], password=cfg['pass'])
     return paramiko.SFTPClient.from_transport(transport)
