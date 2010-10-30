@@ -18,7 +18,7 @@ def get_sftp(cfg):
     transport.connect(username=cfg['user'], password=cfg['pass'])
     return paramiko.SFTPClient.from_transport(transport)
 
-def scan(sftp, path, ret_dict=True):
+def scan_sftp(sftp, path, ret_dict=True):
     files = []
     for f in sftp.listdir_attr(path):
         if f.filename.startswith('.'): continue
@@ -44,11 +44,11 @@ def download(sftp, cfg, path):
 
     sftp.get(path, local_filepath)
 
-if __name__ == '__main__':
+def scan_and_dl(profile='default'):
     # a dict of files indexed by path
-    cfg = get_cfg()['default']
+    cfg = get_cfg()[profile]
     sftp = get_sftp(cfg)
-    remote_files = scan(sftp, cfg['path_remote'])
+    remote_files = scan_sftp(sftp, cfg['path_remote'])
     paths = remote_files.keys()
 
     couch = httplib.HTTPConnection('localhost',5984)
@@ -79,3 +79,7 @@ if __name__ == '__main__':
         resp = couch.getresponse()
         print resp.status, resp.read()
         # output result
+
+if __name__ == '__main__':
+    scan_and_dl('default')
+    
