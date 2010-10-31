@@ -52,14 +52,17 @@ def download(sftp, path):
     rel_path = path.split(cfg['path_remote'])[1]
     local_filepath = expanduser(cfg['path_local'])
     local_filepath += rel_path
-    print "downloading", rel_path,
+    print "downloading", rel_path.lstrip('/'),
 
     local_filedir = dirname(local_filepath)
     if isfile(local_filedir): raise "expecting %s to be a dir"%local_filedir
     if not isdir(local_filedir): makedirs(local_filedir)
 
-    sftp.get(path, local_filepath)
-    print 'done'
+    if not cfg['nodl']:
+        sftp.get(path, local_filepath)
+        print 'done'
+    else:
+        print 'skipped'
 
 def scan_and_dl():
     # a dict of files indexed by path
@@ -114,6 +117,7 @@ def main():
     if options.debug: log.setLevel(logging.DEBUG)
 
     cfg.update(get_cfg('default'))
+    cfg.update({'nodl':options.nodl})
     scan_and_dl()
 
 if __name__ == '__main__':
