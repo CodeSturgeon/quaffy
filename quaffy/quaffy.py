@@ -23,7 +23,7 @@ def scan_sftp(sftp, path, ret_dict=True):
     for f in sftp.listdir_attr(path):
         if f.filename.startswith('.'): continue
         if S_ISDIR(f.st_mode):
-            files.extend(scan(sftp, path+'/'+f.filename, False))
+            files.extend(scan_sftp(sftp, path+'/'+f.filename, False))
         else:
             files.append({
                     'path': "/".join([path,f.filename]),
