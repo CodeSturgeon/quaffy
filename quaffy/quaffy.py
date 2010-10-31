@@ -8,12 +8,17 @@ from yaml import load
 from os import makedirs
 from os.path import expanduser, dirname, isdir, isfile
 from pprint import pprint as pp
+import logging
+from optparse import OptionParser
+
+log = logging.getLogger()
+cfg = {}
 
 def get_cfg(filename='~/.quaffy'):
     # FIXME insert error handling and raising around this
     return load(open(expanduser(filename)))
 
-def get_sftp(cfg):
+def get_sftp():
     transport = paramiko.Transport((cfg['host'],cfg['port']))
     transport.connect(username=cfg['user'], password=cfg['pass'])
     return paramiko.SFTPClient.from_transport(transport)
@@ -34,7 +39,7 @@ def scan_sftp(sftp, path, ret_dict=True):
     if ret_dict: return dict([(f['path'], f) for f in files])
     return files
 
-def download(sftp, cfg, path):
+def download(sftp, path):
     local_filepath = expanduser(cfg['path_local'])
     local_filepath += path.split(cfg['path_remote'])[1]
 
@@ -44,10 +49,9 @@ def download(sftp, cfg, path):
 
     sftp.get(path, local_filepath)
 
-def scan_and_dl(profile='default'):
+def scan_and_dl():
     # a dict of files indexed by path
-    cfg = get_cfg()[profile]
-    sftp = get_sftp(cfg)
+    sftp = get_sftp()
     remote_files = scan_sftp(sftp, cfg['path_remote'])
     paths = remote_files.keys()
 
@@ -69,7 +73,7 @@ def scan_and_dl(profile='default'):
 
     for path in paths:
         print "downloading",path
-        download(sftp, cfg, path)
+        download(sftp, path)
 
         # update database
         couch = httplib.HTTPConnection('localhost',5984)
@@ -81,7 +85,24 @@ def scan_and_dl(profile='default'):
         # output result
 
 def main():
-    scan_and_dl('default')
+    usage = "Usage: %prog [options]"
+    parser = OptionParser(usage=usage)
+    parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
+                        default=False, help="turn on info messages")
+    parser.add_option("-d", "--debug", dest="debug", action="store_true",
+                        default=False, help="turn on debugging")
+    parser.add_option("-n", "--no-download", dest="nodl", action="store_true",
+                        default=False, help="adds to the db but does not dl")
+    (options, args) = parser.parse_args()
+
+    # Setup logging
+    log.setLevel(logging.WARN)
+    log.addHandler(logging.StreamHandler())
+    if options.verbose: log.setLevel(logging.INFO)
+    if options.debug: log.setLevel(logging.DEBUG)
+
+    cfg.update(get_cfg()['default'])
+    scan_and_dl()
 
 if __name__ == '__main__':
     main()
