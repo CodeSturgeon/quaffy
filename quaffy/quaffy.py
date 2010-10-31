@@ -4,7 +4,6 @@ import paramiko
 import httplib
 import simplejson as json
 from stat import S_ISDIR
-from yaml import load
 from os import makedirs
 from os.path import expanduser, dirname, isdir, isfile
 from pprint import pprint as pp

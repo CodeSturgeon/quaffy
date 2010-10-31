@@ -2,6 +2,8 @@
 #use_setuptools()
 from setuptools import setup, find_packages
 
+# FIXME require paramiko
+
 setup(name="quaffy",
       version="0.1dev",
       description="sftp downloader with couch backend",
