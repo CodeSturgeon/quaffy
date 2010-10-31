@@ -4,7 +4,7 @@ import paramiko
 import httplib
 import simplejson as json
 from stat import S_ISDIR
-from os import makedirs
+from os import makedirs, chmod
 from os.path import expanduser, dirname, isdir, isfile
 from pprint import pprint as pp
 import logging
@@ -59,6 +59,7 @@ def download(sftp, path):
 
     if not cfg['nodl']:
         sftp.get(path, local_filepath)
+        chmod(local_filepath, 0664)
         print 'done'
     else:
         print 'skipped'
