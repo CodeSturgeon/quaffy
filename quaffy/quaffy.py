@@ -10,13 +10,22 @@ from os.path import expanduser, dirname, isdir, isfile
 from pprint import pprint as pp
 import logging
 from optparse import OptionParser
+from urllib import quote
 
 log = logging.getLogger()
 cfg = {}
 
-def get_cfg(filename='~/.quaffy'):
-    # FIXME insert error handling and raising around this
-    return load(open(expanduser(filename)))
+def get_cfg(profile='default'):
+
+    couch = httplib.HTTPConnection('localhost',5984)
+
+    # Get list of paths from DB
+    uri = "/quaffy/profile-%s"%profile
+    couch.request("GET", uri)
+    resp = couch.getresponse()
+    couch_ret = json.loads(resp.read())
+
+    return couch_ret
 
 def get_sftp():
     transport = paramiko.Transport((cfg['host'],cfg['port']))
@@ -40,14 +49,17 @@ def scan_sftp(sftp, path, ret_dict=True):
     return files
 
 def download(sftp, path):
+    rel_path = path.split(cfg['path_remote'])[1]
     local_filepath = expanduser(cfg['path_local'])
-    local_filepath += path.split(cfg['path_remote'])[1]
+    local_filepath += rel_path
+    print "downloading", rel_path,
 
     local_filedir = dirname(local_filepath)
     if isfile(local_filedir): raise "expecting %s to be a dir"%local_filedir
     if not isdir(local_filedir): makedirs(local_filedir)
 
     sftp.get(path, local_filepath)
+    print 'done'
 
 def scan_and_dl():
     # a dict of files indexed by path
@@ -72,7 +84,6 @@ def scan_and_dl():
         paths.remove(doc['key'])
 
     for path in paths:
-        print "downloading",path
         download(sftp, path)
 
         # update database
@@ -81,7 +92,8 @@ def scan_and_dl():
         headers = {"Content-Type":'application/json'}
         couch.request("POST", "/%s/"%cfg['db'], body, headers)
         resp = couch.getresponse()
-        print resp.status, resp.read()
+        #print resp.status, resp.read()
+        # FIXME error check
         # output result
 
 def main():
@@ -96,12 +108,12 @@ def main():
     (options, args) = parser.parse_args()
 
     # Setup logging
-    log.setLevel(logging.WARN)
     log.addHandler(logging.StreamHandler())
+    log.setLevel(logging.WARN)
     if options.verbose: log.setLevel(logging.INFO)
     if options.debug: log.setLevel(logging.DEBUG)
 
-    cfg.update(get_cfg()['default'])
+    cfg.update(get_cfg('default'))
     scan_and_dl()
 
 if __name__ == '__main__':
