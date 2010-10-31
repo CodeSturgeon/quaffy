@@ -80,6 +80,8 @@ def scan_and_dl(profile='default'):
         print resp.status, resp.read()
         # output result
 
-if __name__ == '__main__':
+def main():
     scan_and_dl('default')
-    
+
+if __name__ == '__main__':
+    main()
