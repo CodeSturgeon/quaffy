@@ -10,6 +10,7 @@ from pprint import pprint as pp
 import logging
 from optparse import OptionParser
 from urllib import quote
+import datetime
 
 log = logging.getLogger()
 cfg = {}
@@ -92,7 +93,9 @@ def scan_and_dl():
     # Iter DB results by path
     for doc in couch_ret['rows']:
         # FIXME check size and mtime
-        paths.remove(doc['key'])
+        cur = remote_files[doc['key']]
+        if doc['value'][0] == cur['mtime'] and doc['value'][1] == cur['size']:
+            paths.remove(doc['key'])
 
     downloaded = []
     for path in paths:
@@ -103,14 +106,14 @@ def scan_and_dl():
         # update database
         couch = httplib.HTTPConnection(cfg['dbhost'], cfg['dbport'])
         # FIXME add timestamp to record
-        body = json.dumps({'downloads': downloaded})
+        timestamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%MZ')
+        body = json.dumps({'downloads': downloaded, 'timestamp': timestamp})
         headers = {"Content-Type":'application/json'}
         couch.request("POST", "/%s/"%cfg['dbname'], body, headers)
         resp = couch.getresponse()
         #print resp.status, resp.read()
         # FIXME error check
 
-    # FIXME close sftp
     sftp.close()
     # output result
     print 'downloaded %d files'%len(downloaded)
