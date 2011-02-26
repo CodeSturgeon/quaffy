@@ -15,7 +15,6 @@ log = logging.getLogger()
 cfg = {}
 
 def get_cfg():
-
     couch = httplib.HTTPConnection(cfg['dbhost'], cfg['dbport'])
 
     # Get list of paths from DB
@@ -44,7 +43,7 @@ def scan_sftp(sftp, path, ret_dict=True):
                     'path': "/".join([path,f.filename]),
                     'size': f.st_size,
                     'mtime': f.st_mtime,
-                    })
+            })
 
     if ret_dict: return dict([(f['path'], f) for f in files])
     return files
