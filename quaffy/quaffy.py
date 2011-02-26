@@ -21,8 +21,10 @@ def get_cfg():
     # Get list of paths from DB
     uri = "/%s/quaffy-%s"%(cfg['dbname'], cfg['profile'])
     couch.request("GET", uri)
+    log.debug('Getting profile')
     resp = couch.getresponse()
     couch_ret = json.loads(resp.read())
+    log.debug('Got profile')
 
     return couch_ret
 
@@ -67,20 +69,26 @@ def download(sftp, path):
 def scan_and_dl():
     # a dict of files indexed by path
     sftp = get_sftp()
+    log.debug('scanning sftp')
     remote_files = scan_sftp(sftp, cfg['path_remote'])
     paths = remote_files.keys()
+    log.debug('found %d remote files'%len(paths))
 
     couch = httplib.HTTPConnection(cfg['dbhost'], cfg['dbport'])
 
     # Get list of paths from DB
     body = json.dumps({"keys":paths})
     headers = {"Content-Type":'application/json'}
-    uri = "/%s/_design/quaffy/_view/paths?include_docs=true"%cfg['dbname']
-    couch.request("POST", uri, body, headers)
+    #uri = "/%s/_design/quaffy/_view/paths"%cfg['dbname']
+    #couch.request("POST", uri, body, headers)
+    uri = "/%s/_design/quaffy/_view/paths"%cfg['dbname']
+    couch.request("GET", uri)
 
+    log.debug('requesting records')
     resp = couch.getresponse()
     # FIXME look for errors
     couch_ret = json.loads(resp.read())
+    log.debug('%d records recived'%len(couch_ret['rows']))
 
     # Iter DB results by path
     for doc in couch_ret['rows']:
