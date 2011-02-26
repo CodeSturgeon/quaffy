@@ -81,7 +81,9 @@ def scan_and_dl():
     headers = {"Content-Type":'application/json'}
     #uri = "/%s/_design/quaffy/_view/paths"%cfg['dbname']
     #couch.request("POST", uri, body, headers)
-    uri = "/%s/_design/quaffy/_view/paths"%cfg['dbname']
+    uri = "/%s/_design/quaffy/_view/paths?group=true"%cfg['dbname']
+    uri += "&startkey=[\"%s\"]"%cfg['profile']
+    uri += "&endkey=[\"%s\",{}]"%cfg['profile']
     couch.request("GET", uri)
 
     log.debug('requesting records')
@@ -93,9 +95,9 @@ def scan_and_dl():
     # Iter DB results by path
     for doc in couch_ret['rows']:
         # FIXME check size and mtime
-        cur = remote_files[doc['key']]
+        cur = remote_files[doc['key'][1]]
         if doc['value'][0] == cur['mtime'] and doc['value'][1] == cur['size']:
-            paths.remove(doc['key'])
+            paths.remove(doc['key'][1])
 
     downloaded = []
     for path in paths:
@@ -104,11 +106,14 @@ def scan_and_dl():
 
     if len(downloaded) > 0:
         # update database
-        couch = httplib.HTTPConnection(cfg['dbhost'], cfg['dbport'])
-        # FIXME add timestamp to record
-        timestamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%MZ')
-        body = json.dumps({'downloads': downloaded, 'timestamp': timestamp})
+        timestamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
+        body = json.dumps({
+                'downloads': downloaded,
+                'timestamp': timestamp,
+                'profile': cfg['profile']
+        })
         headers = {"Content-Type":'application/json'}
+        couch = httplib.HTTPConnection(cfg['dbhost'], cfg['dbport'])
         couch.request("POST", "/%s/"%cfg['dbname'], body, headers)
         resp = couch.getresponse()
         #print resp.status, resp.read()
@@ -122,10 +127,10 @@ def main():
     usage = "Usage: %prog [options]"
     parser = OptionParser(usage=usage)
     # host
-    parser.add_option("", "--host", dest="host", action="store",
+    parser.add_option("", "--dbhost", dest="dbhost", action="store",
                         default='localhost', help='couchdb host')
     # port
-    parser.add_option("", "--port", dest="port", action="store",
+    parser.add_option("", "--dbport", dest="dbport", action="store",
                         default=5984, help='couchdb port')
     # dbname
     parser.add_option("-b", "--dbname", dest="dbname", action="store",
@@ -150,8 +155,8 @@ def main():
     if options.verbose: log.setLevel(logging.INFO)
     if options.debug: log.setLevel(logging.DEBUG)
 
-    cfg.update({'dbhost':options.host})
-    cfg.update({'dbport':options.port})
+    cfg.update({'dbhost':options.dbhost})
+    cfg.update({'dbport':options.dbport})
     cfg.update({'dbname':options.dbname})
     cfg.update({'profile':options.profile})
     cfg.update({'nodl':options.nodl})
