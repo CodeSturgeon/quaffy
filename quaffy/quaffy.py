@@ -14,12 +14,12 @@ from urllib import quote
 log = logging.getLogger()
 cfg = {}
 
-def get_cfg(profile='default'):
+def get_cfg():
 
-    couch = httplib.HTTPConnection('localhost',5984)
+    couch = httplib.HTTPConnection(cfg['dbhost'], cfg['dbport'])
 
     # Get list of paths from DB
-    uri = "/quaffy/profile-%s"%profile
+    uri = "/%s/quaffy-%s"%(cfg['dbname'], cfg['profile'])
     couch.request("GET", uri)
     resp = couch.getresponse()
     couch_ret = json.loads(resp.read())
@@ -70,12 +70,12 @@ def scan_and_dl():
     remote_files = scan_sftp(sftp, cfg['path_remote'])
     paths = remote_files.keys()
 
-    couch = httplib.HTTPConnection('localhost',5984)
+    couch = httplib.HTTPConnection(cfg['dbhost'], cfg['dbport'])
 
     # Get list of paths from DB
     body = json.dumps({"keys":paths})
     headers = {"Content-Type":'application/json'}
-    uri = "/%s/_design/qafd/_view/paths?include_docs=true"%cfg['db']
+    uri = "/%s/_design/quaffy/_view/paths?include_docs=true"%cfg['dbname']
     couch.request("POST", uri, body, headers)
 
     resp = couch.getresponse()
@@ -84,30 +84,54 @@ def scan_and_dl():
 
     # Iter DB results by path
     for doc in couch_ret['rows']:
+        # FIXME check size and mtime
         paths.remove(doc['key'])
 
+    downloaded = []
     for path in paths:
         download(sftp, path)
+        downloaded.append(remote_files[path])
 
+    if len(downloaded) > 0:
         # update database
-        couch = httplib.HTTPConnection('localhost',5984)
-        body = json.dumps(remote_files[path])
+        couch = httplib.HTTPConnection(cfg['dbhost'], cfg['dbport'])
+        # FIXME add timestamp to record
+        body = json.dumps({'downloads': downloaded})
         headers = {"Content-Type":'application/json'}
-        couch.request("POST", "/%s/"%cfg['db'], body, headers)
+        couch.request("POST", "/%s/"%cfg['dbname'], body, headers)
         resp = couch.getresponse()
         #print resp.status, resp.read()
         # FIXME error check
-        # output result
+
+    # FIXME close sftp
+    sftp.close()
+    # output result
+    print 'downloaded %d files'%len(downloaded)
 
 def main():
     usage = "Usage: %prog [options]"
     parser = OptionParser(usage=usage)
+    # host
+    parser.add_option("", "--host", dest="host", action="store",
+                        default='localhost', help='couchdb host')
+    # port
+    parser.add_option("", "--port", dest="port", action="store",
+                        default=5984, help='couchdb port')
+    # dbname
+    parser.add_option("-b", "--dbname", dest="dbname", action="store",
+                        default='quaffy', help='couchdb name')
+    # profile
+    parser.add_option("-p", "--profile", dest="profile", action="store",
+                        default='default', help='profile to use')
+
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
                         default=False, help="turn on info messages")
     parser.add_option("-d", "--debug", dest="debug", action="store_true",
                         default=False, help="turn on debugging")
+
     parser.add_option("-n", "--no-download", dest="nodl", action="store_true",
                         default=False, help="adds to the db but does not dl")
+
     (options, args) = parser.parse_args()
 
     # Setup logging
@@ -116,8 +140,12 @@ def main():
     if options.verbose: log.setLevel(logging.INFO)
     if options.debug: log.setLevel(logging.DEBUG)
 
-    cfg.update(get_cfg('default'))
+    cfg.update({'dbhost':options.host})
+    cfg.update({'dbport':options.port})
+    cfg.update({'dbname':options.dbname})
+    cfg.update({'profile':options.profile})
     cfg.update({'nodl':options.nodl})
+    cfg.update(get_cfg())
     scan_and_dl()
 
 if __name__ == '__main__':
