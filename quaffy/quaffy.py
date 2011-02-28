@@ -30,6 +30,7 @@ def get_cfg():
 
 def get_sftp():
     transport = paramiko.Transport((cfg['host'],cfg['port']))
+    transport.use_compression()
     transport.connect(username=cfg['user'], password=cfg['pass'])
     return paramiko.SFTPClient.from_transport(transport)
 
