@@ -1,0 +1,9 @@
+{
+   "_id": "quaffy-default",
+   "user": "my_username",
+   "pass": "my_password",
+   "host": "sftp_hostname",
+   "port": 22,
+   "path_local": "/where/files/get/dumped",
+   "path_remote": "./folder/of/source/files"
+}
