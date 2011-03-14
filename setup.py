@@ -15,4 +15,4 @@ setup(name="quaffy",
               'quaffy = quaffy.quaffy:main',
           ]
       }
-     )
+)

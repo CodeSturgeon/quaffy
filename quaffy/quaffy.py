@@ -95,8 +95,10 @@ def scan_and_dl():
 
     # Iter DB results by path
     for doc in couch_ret['rows']:
-        # FIXME check size and mtime
-        cur = remote_files[doc['key'][1]]
+        try:
+            cur = remote_files[doc['key'][1]]
+        except KeyError:
+            next
         if doc['value'][0] == cur['mtime'] and doc['value'][1] == cur['size']:
             paths.remove(doc['key'][1])
 
