@@ -54,7 +54,7 @@ def download(sftp, path):
     rel_path = path.split(cfg['path_remote'])[1]
     local_filepath = expanduser(cfg['path_local'])
     local_filepath += rel_path
-    print "downloading", rel_path.lstrip('/'),
+    print "downloading", rel_path.encode('ascii', 'replace').lstrip('/')
 
     local_filedir = dirname(local_filepath)
     if isfile(local_filedir): raise "expecting %s to be a dir"%local_filedir
