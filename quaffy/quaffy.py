@@ -102,7 +102,7 @@ def scan_and_dl():
             log.debug('in remote: '+doc['key'][1])
         except KeyError:
             log.debug('not in remote: '+doc['key'][1])
-            next
+            continue
         log.debug('cur: '+cur)
         if doc['value'][0] == cur['mtime'] and doc['value'][1] == cur['size']:
             paths.remove(doc['key'][1])
