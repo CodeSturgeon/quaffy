@@ -58,9 +58,9 @@ def download(sftp, path):
 
     local_filedir = dirname(local_filepath)
     if isfile(local_filedir): raise "expecting %s to be a dir"%local_filedir
-    if not isdir(local_filedir): makedirs(local_filedir)
 
     if not cfg['nodl']:
+        if not isdir(local_filedir): makedirs(local_filedir)
         sftp.get(path, local_filepath)
         chmod(local_filepath, 0664)
         print 'done'
@@ -104,6 +104,7 @@ def scan_and_dl():
             log.debug('not in remote: '+doc['key'][1])
             continue
         if doc['value'][0] == cur['mtime'] and doc['value'][1] == cur['size']:
+            log.debug('discarding as unchanged: '+doc['value'][1])
             paths.remove(doc['key'][1])
 
     downloaded = []
@@ -111,7 +112,7 @@ def scan_and_dl():
         download(sftp, path)
         downloaded.append(remote_files[path])
 
-    if len(downloaded) > 0:
+    if len(downloaded) > 0 and not cfg['nodl']:
         # update database
         timestamp = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
         body = json.dumps({
@@ -123,6 +124,7 @@ def scan_and_dl():
         couch = httplib.HTTPConnection(cfg['dbhost'], cfg['dbport'])
         couch.request("POST", "/%s/"%cfg['dbname'], body, headers)
         resp = couch.getresponse()
+        log.debug(resp)
         #print resp.status, resp.read()
         # FIXME error check
 
