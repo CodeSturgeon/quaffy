@@ -72,12 +72,13 @@ def scan_and_dl():
     sftp = get_sftp()
     log.debug('scanning sftp')
     remote_files = scan_sftp(sftp, cfg['path_remote'])
+    # All the file paths we might want to download
     paths = remote_files.keys()
     log.debug('found %d remote files'%len(paths))
 
     couch = httplib.HTTPConnection(cfg['dbhost'], cfg['dbport'])
 
-    # Get list of paths from DB
+    # Get list of already downloaded paths from DB
     body = json.dumps({"keys":paths})
     headers = {"Content-Type":'application/json'}
     #uri = "/%s/_design/quaffy/_view/paths"%cfg['dbname']
@@ -93,13 +94,14 @@ def scan_and_dl():
     couch_ret = json.loads(resp.read())
     log.debug('%d records recived'%len(couch_ret['rows']))
 
-    # Iter DB results by path
+    # Iter DB (known) path results by available (remote) path
+    # FIXME this seems upside down should search for paths in couch_ret
     for doc in couch_ret['rows']:
         try:
             cur = remote_files[doc['key'][1]]
-            log.debug('ok '+doc['key'][1])
+            log.debug('in remote: '+doc['key'][1])
         except KeyError:
-            log.debug('skipping '+doc['key'][1])
+            log.debug('not in remote: '+doc['key'][1])
             next
         log.debug('cur: '+cur)
         if doc['value'][0] == cur['mtime'] and doc['value'][1] == cur['size']:
