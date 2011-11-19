@@ -104,7 +104,7 @@ def scan_and_dl():
             log.debug('not in remote: '+doc['key'][1])
             continue
         if doc['value'][0] == cur['mtime'] and doc['value'][1] == cur['size']:
-            log.debug('discarding as unchanged: '+doc['value'][1])
+            log.debug('discarding as unchanged: '+doc['key'][1])
             paths.remove(doc['key'][1])
 
     downloaded = []
