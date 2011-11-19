@@ -92,13 +92,16 @@ def scan_and_dl():
     # FIXME look for errors
     couch_ret = json.loads(resp.read())
     log.debug('%d records recived'%len(couch_ret['rows']))
+    log.debug(couch_ret)
 
     # Iter DB results by path
     for doc in couch_ret['rows']:
         try:
             cur = remote_files[doc['key'][1]]
         except KeyError:
+            log.debug('skipping '+doc['key'][1])
             next
+        log.debug('cur: '+cur)
         if doc['value'][0] == cur['mtime'] and doc['value'][1] == cur['size']:
             paths.remove(doc['key'][1])
 
