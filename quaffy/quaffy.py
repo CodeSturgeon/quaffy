@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
-import paramiko
+import warnings
+# Ignore RandomPool warnings
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore",category=DeprecationWarning)
+    import paramiko
 import httplib
 import simplejson as json
 from stat import S_ISDIR
