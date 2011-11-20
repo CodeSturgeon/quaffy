@@ -130,7 +130,8 @@ def scan_and_dl():
 
     sftp.close()
     # output result
-    print 'downloaded %d files'%len(downloaded)
+    if len(downloaded) > 0:
+        print 'downloaded %d files'%len(downloaded)
 
 def main():
     usage = "Usage: %prog [options]"
